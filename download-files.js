@@ -1,4 +1,4 @@
-async function downloadFile(url, filename) {
+async function downloadFile(url, filename, listItem) {
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to download: ${url}`);
@@ -12,6 +12,9 @@ async function downloadFile(url, filename) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(urlObject); // メモリを解放
+
+        // ダウンロード完了後にフォントカラーを黒に変更
+        listItem.style.color = "black";
     } catch (error) {
         console.error(error);
         alert(`Error downloading file: ${filename}`);
@@ -23,15 +26,28 @@ async function downloadAllFiles() {
     // ダウンロード対象のリンクを取得
     const downloadLinks = document.querySelectorAll('.download-link');
     const downloadButton = document.getElementById('downloadAll');
+    const downloadList = document.getElementById('downloadList');
     
     // ボタンを無効化してダウンロードが終わるまでクリックを防止
     downloadButton.disabled = true;
 
+    // リストをクリアしてからファイル名を追加
+    downloadList.innerHTML = '';
+    const listItems = [];
+
     for (const link of downloadLinks) {
         const url = link.href;
-        // download 属性が設定されていない場合は URL からファイル名を取得
         const filename = link.getAttribute('download') || url.split('/').pop();
-        await downloadFile(url, filename); // 各ダウンロードが完了するまで待機
+
+        // ダウンロード予定のファイルをリストに表示（グレーのフォントで）
+        const listItem = document.createElement('li');
+        listItem.textContent = filename;
+        listItem.style.color = "gray"; // 初期状態はグレー
+        downloadList.appendChild(listItem);
+        listItems.push(listItem);
+
+        // ダウンロードし、完了したらカラーを変更
+        await downloadFile(url, filename, listItem);
     }
 
     alert('すべてのダウンロードが完了しました。');
