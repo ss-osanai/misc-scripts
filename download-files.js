@@ -1,8 +1,30 @@
+const progressBar = new ProgressBar.Line('#progress-container', {
+    strokeWidth: 4,
+    color: '#4caf50'
+});
+
 async function downloadFile(url, filename, listItem) {
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to download: ${url}`);
-        
+
+        const reader = response.body.getReader();
+        const contentLength = +response.headers.get('Content-Length');
+
+        let receivedLength = 0;
+        let chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            chunks.push(value);
+            receivedLength += value.length;
+
+            // 進捗を更新
+            progressBar.set(receivedLength / contentLength);
+        }
+
         const blob = await response.blob();
         const a = document.createElement('a');
         const urlObject = URL.createObjectURL(blob);
@@ -27,7 +49,7 @@ async function downloadAllFiles() {
     const downloadLinks = document.querySelectorAll('.download-link');
     const downloadButton = document.getElementById('downloadAll');
     const downloadList = document.getElementById('downloadList');
-    
+
     // ボタンを無効化してダウンロードが終わるまでクリックを防止
     downloadButton.disabled = true;
 
@@ -51,17 +73,12 @@ async function downloadAllFiles() {
     }
 
     alert('すべてのダウンロードが完了しました。');
-    
+
     // ダウンロードが完了したらボタンを再度有効化
     downloadButton.disabled = false;
 }
 
-// 一度だけイベントリスナーを登録
-document.addEventListener('DOMContentLoaded', function () {
-    const downloadButton = document.getElementById('downloadAll');
-    if (downloadButton) {
-        downloadButton.addEventListener('click', function () {
-            downloadAllFiles();
-        }, { once: true }); // ボタンを一度だけ実行
-    }
+// クリックイベントリスナーの登録
+document.getElementById('downloadAll').addEventListener('click', function () {
+    downloadAllFiles();
 });
